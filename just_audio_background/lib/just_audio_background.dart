@@ -359,7 +359,7 @@ class _PlayerAudioHandler extends BaseAudioHandler
       (id) {
         assert(sequence.any((element) => element.id == id),
             'Audio source with ID $id does not exist!');
-        return sequence.firstWhere((element) => element.id == id));
+        return sequence.firstWhere((element) => element.id == id)!._toMessage();
       },
     );
   }
