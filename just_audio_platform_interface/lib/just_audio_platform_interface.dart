@@ -34,6 +34,9 @@ abstract class JustAudioPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  /// True if the platform can handle [MappingAudioSourceMessage]s.
+  bool get supportsMappingAudioSource => false;
+
   /// Creates a new platform player and returns a nested platform interface for
   /// communicating with that player.
   Future<AudioPlayerPlatform> init(InitRequest request) {
@@ -43,6 +46,12 @@ abstract class JustAudioPlatform extends PlatformInterface {
   /// Disposes of a platform player.
   Future<DisposePlayerResponse> disposePlayer(DisposePlayerRequest request) {
     throw UnimplementedError('disposePlayer() has not been implemented.');
+  }
+
+  /// Disposes of all platform players.
+  Future<DisposeAllPlayersResponse> disposeAllPlayers(
+      DisposeAllPlayersRequest request) {
+    throw UnimplementedError('disposeAllPlayers() has not been implemented.');
   }
 }
 
@@ -57,8 +66,12 @@ abstract class JustAudioPlatform extends PlatformInterface {
 /// [AudioPlayerPlatform] methods.
 abstract class AudioPlayerPlatform {
   final String id;
+  final AudioSourceMessageGetter getAudioSourceMessage;
 
-  AudioPlayerPlatform(this.id);
+  AudioPlayerPlatform(
+    this.id, {
+    this.getAudioSourceMessage = _unimplementedGetAudioServiceMessage,
+  });
 
   /// A broadcast stream of playback events.
   Stream<PlaybackEventMessage> get playbackEventMessageStream {
@@ -68,7 +81,7 @@ abstract class AudioPlayerPlatform {
 
   /// A broadcast stream of data updates.
   Stream<PlayerDataMessage> get playerDataMessageStream =>
-      Stream<PlayerDataMessage>.empty();
+      const Stream<PlayerDataMessage>.empty();
 
   /// Loads an audio source.
   Future<LoadResponse> load(LoadRequest request) {
@@ -161,7 +174,7 @@ abstract class AudioPlayerPlatform {
         "setAndroidAudioAttributes() has not been implemented.");
   }
 
-  /// This method has been superceded by [JustAudioPlatform.disposePlayer].
+  /// This method has been superseded by [JustAudioPlatform.disposePlayer].
   /// For backward compatibility, this method will still be called as a
   /// fallback if [JustAudioPlatform.disposePlayer] is not implemented.
   Future<DisposeResponse> dispose(DisposeRequest request) {
@@ -216,7 +229,13 @@ abstract class AudioPlayerPlatform {
     throw UnimplementedError(
         "androidEqualizerBandSetGain() has not been implemented.");
   }
+
+  static Never _unimplementedGetAudioServiceMessage(String id) =>
+      throw UnimplementedError(
+          'getAudioServiceMessage() has not been implemented.');
 }
+
+typedef AudioSourceMessageGetter = AudioSourceMessage Function(String id);
 
 /// A data update communicated from the platform implementation to the Flutter
 /// plugin. Each field should trigger a state update in the frontend plugin if
@@ -379,15 +398,19 @@ class IcyHeadersMessage {
 /// player instance.
 class InitRequest {
   final String id;
+  AudioSourceMessageGetter getAudioSourceMessage;
   final AudioLoadConfigurationMessage? audioLoadConfiguration;
   final List<AudioEffectMessage> androidAudioEffects;
   final List<AudioEffectMessage> darwinAudioEffects;
+  final bool? androidOffloadSchedulingEnabled;
 
   InitRequest({
     required this.id,
+    required this.getAudioSourceMessage,
     this.audioLoadConfiguration,
     this.androidAudioEffects = const [],
     this.darwinAudioEffects = const [],
+    this.androidOffloadSchedulingEnabled,
   });
 
   Map<dynamic, dynamic> toMap() => <dynamic, dynamic>{
@@ -399,6 +422,7 @@ class InitRequest {
         'darwinAudioEffects': darwinAudioEffects
             .map((audioEffect) => audioEffect.toMap())
             .toList(),
+        'androidOffloadSchedulingEnabled': androidOffloadSchedulingEnabled,
       };
 }
 
@@ -419,6 +443,21 @@ class DisposePlayerRequest {
 class DisposePlayerResponse {
   static DisposePlayerResponse fromMap(Map<dynamic, dynamic> map) =>
       DisposePlayerResponse();
+}
+
+/// Information communicated to the platform implementation when disposing of all
+/// player instances.
+class DisposeAllPlayersRequest {
+  DisposeAllPlayersRequest();
+
+  Map<dynamic, dynamic> toMap() => <dynamic, dynamic>{};
+}
+
+/// Information returned by the platform implementation after disposing of all
+/// player instances.
+class DisposeAllPlayersResponse {
+  static DisposeAllPlayersResponse fromMap(Map<dynamic, dynamic> map) =>
+      DisposeAllPlayersResponse();
 }
 
 /// Information communicated to the platform implementation when loading an
@@ -1089,6 +1128,26 @@ class SilenceAudioSourceMessage extends IndexedAudioSourceMessage {
         'type': 'silence',
         'id': id,
         'duration': duration.inMicroseconds,
+      };
+}
+
+/// Information about a mapping audio source to be communicated with the
+/// platform implementation.
+class MappingAudioSourceMessage extends IndexedAudioSourceMessage {
+  /// The closure can only be used by platform implementations that pass by
+  /// reference.
+  final Future<IndexedAudioSourceMessage?> Function() createAudioSourceMessage;
+
+  MappingAudioSourceMessage({
+    required String id,
+    required this.createAudioSourceMessage,
+    dynamic tag,
+  }) : super(id: id, tag: tag);
+
+  @override
+  Map<dynamic, dynamic> toMap() => <dynamic, dynamic>{
+        'type': 'mapping',
+        'id': id,
       };
 }
 
