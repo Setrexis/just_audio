@@ -354,11 +354,11 @@ class _PlayerAudioHandler extends BaseAudioHandler
   List<MediaItem>? get currentQueue => queue.nvalue;
 
   _PlayerAudioHandler(String playerId) {
-    _init(playerId);
+    _init(playerId, (id) => _source?.sequence.firstWhere((e) => e.));
   }
 
-  Future<void> _init(String playerId) async {
-    final player = await _platform.init(InitRequest(id: playerId));
+  Future<void> _init(String playerId, AudioSourceMessageGetter audioSourceMessageGetter) async {
+    final player = await _platform.init(InitRequest(id: playerId, getAudioSourceMessage: audioSourceMessageGetter));
     _playerCompleter.complete(player);
     final playbackEventMessageStream = player.playbackEventMessageStream;
     playbackEventMessageStream.listen((event) {
