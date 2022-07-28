@@ -11,7 +11,6 @@ dependencies:
   just_audio_platform_interface: 
     git: 
         url: https://github.com/Setrexis/just_audio
-        ref: feature/mapping_audio_source
         path: just_audio_platform_interface/
   # just_audio_platform_interface:
   #   path: ../just_audio_platform_interface
