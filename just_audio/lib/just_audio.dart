@@ -2784,7 +2784,7 @@ class ResolvingAudioSource extends StreamAudioSource {
 
   @override
   IndexedAudioSourceMessage _toMessage() {
-    return ProgressiveAudioSourceMessage(
+    return IndexedAudioSourceMessage(
         id: _id, uri: _uri.toString(), headers: headers, tag: tag);
   }
 }
